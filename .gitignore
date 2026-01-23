@@ -1,0 +1,8 @@
+# 忽略 debug 文件夹（名字可根据实际调整）
+output/
+# 可选：补充机器人项目常见忽略项
+__pycache__/
+*.pyc
+build/
+devel/
+*.log
