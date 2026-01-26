@@ -41,6 +41,7 @@ def create_parser():
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     
+    
     parser = create_parser()
     args = parser.parse_args()
 
