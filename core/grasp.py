@@ -44,10 +44,13 @@ if __name__ == "__main__":
     
     parser = create_parser()
     args = parser.parse_args()
-
+    # yolo_path = "/home/unitree/lxy_arm/ultralytics/yolo11n_object365.pt"
+    yolo_path = "/home/unitree/lxy_arm/ultralytics/yolo26n-objv1-150.pt"
     # 初始化模型和机器人
     print("初始化模型和机械臂")
-    model = YOLO(f"/home/unitree/lxy_arm/robot_grasp/ultralytics/yolov8n.pt", verbose=False)
+    # model = YOLO(f"/home/unitree/lxy_arm/robot_grasp/ultralytics/yolov8n.pt", verbose=False)
+    model = YOLO(yolo_path, verbose=False)
+
     robot = z1_arm()
     realcam = Realsense2(0, 640, 480, 30)
 
@@ -67,9 +70,11 @@ if __name__ == "__main__":
     for img in realcam:
         rgb_img, depth_vis_img, depth_frame = img
         if len(np.array(rgb_img).shape) == 3:
-            results = model(rgb_img, verbose=False)[0]
+            # 置信度阈值修改了！！！
+            results = model(rgb_img, conf = 0.02, verbose=False)[0]
             img_xy = cal_center(rgb_img, results.names, results.boxes.data.tolist())
             if img_xy:
+                print("**************************识别到物体**************************")
                 print(f"img_xy: {img_xy}")
                 real_xyz = realcam.pixel2point(img_xy)
                 print(f"real_xyz: {real_xyz}")
@@ -91,10 +96,10 @@ if __name__ == "__main__":
                     r, p, yaw = 0.0, 1.0, 0.0
 
                 move_command = np.array([r, p, yaw, x, y, z], dtype=float)
-                print(f"\n[运动执行] 执行movej运动指令：")
-                print(f"  -> 完整指令: {move_command}")
+                print(f"[运动执行] 执行movej运动指令：")
+                print(f"完整指令: {move_command}")
                 robot(move_command)
-                time.sleep(3)
+                time.sleep(1)
                 if args.mode == 1:
                     robot.move_init_pose()
                 elif args.mode == 2:

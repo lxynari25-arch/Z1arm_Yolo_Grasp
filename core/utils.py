@@ -423,7 +423,10 @@ def cal_center(rgb_img, names, boxes):
     center = []
     if boxes:
         boxes = np.array(boxes)
-        boxes = boxes[boxes[:, -1] == 67].tolist()          # 只检测手机
+        # 修改类别！！！
+        # boxes = boxes[boxes[:, -1] == 67].tolist()          # 只检测手机
+        # boxes = boxes[boxes[:, -1] == 54].tolist()          #yolo11n_object365.pt钢笔
+        boxes = boxes[boxes[:, -1] == 51].tolist()            #yolo26n-objv1-150.pt钢笔
         if boxes:
             boxes = [boxes[0]]
             for obj in boxes:
@@ -469,4 +472,3 @@ def save_debug_images(rgb_img, depth_vis_img, depth_frame):
     print(f"RGB图已保存到: {rgb_save_path}")
     print(f"深度可视化已保存到: {depth_save_path}")
     print(f"原始深度数据已保存到: {raw_depth_save_path}")
-    print(f"[时间戳: {timestamp}] 用于验证RGB和深度图对应关系")

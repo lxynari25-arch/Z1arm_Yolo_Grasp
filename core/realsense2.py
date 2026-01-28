@@ -159,8 +159,9 @@ class Realsense2(object):
 
     # ------------------------------------------------------------------
     # 像素 -> 三维点
-    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------    
     def pixel2point(self, xy):
         with self._lock:
             z = self.aligned_depth_frame.get_distance(xy[0], xy[1])
+            print(f"原始测量深度是：{z}")            
             return rs.rs2_deproject_pixel_to_point(self.intrinsics, xy, z)
