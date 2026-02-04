@@ -419,14 +419,25 @@ def random_color(id):
     return hsv2bgr(h_plane, s_plane, 1)
 
 
-def cal_center(rgb_img, names, boxes):
+def cal_center(rgb_img, names, boxes, class_id=51):
+    """
+    计算检测到的物体中心坐标
+    
+    Args:
+        rgb_img: RGB彩色图
+        names: 类别名称字典
+        boxes: 检测框列表 (left, top, right, bottom, confidence, class_id)
+    
+    Returns:
+        center: [center_x, center_y] 或空列表
+    """
     center = []
+    label = 0
+    confidence = 0
     if boxes:
         boxes = np.array(boxes)
-        # 修改类别！！！
-        # boxes = boxes[boxes[:, -1] == 67].tolist()          # 只检测手机
-        # boxes = boxes[boxes[:, -1] == 54].tolist()          #yolo11n_object365.pt钢笔
-        boxes = boxes[boxes[:, -1] == 51].tolist()            #yolo26n-objv1-150.pt钢笔
+        # 根据指定的class_id过滤检测框
+        boxes = boxes[boxes[:, -1] == class_id].tolist()
         if boxes:
             boxes = [boxes[0]]
             for obj in boxes:
@@ -441,9 +452,7 @@ def cal_center(rgb_img, names, boxes):
                 cv2.rectangle(rgb_img, (left - 3, top - 33), (left + w + 10, top), color, -1)
                 cv2.putText(rgb_img, caption, (left, top - 5), 0, 1, (0, 0, 0), 2, 16)
 
-    cv2.waitKey(1000)
-
-    return center
+    return center, names[label], confidence
 
 
 def save_debug_images(rgb_img, depth_vis_img, depth_frame):

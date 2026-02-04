@@ -26,9 +26,9 @@ class z1_arm(object):
         
 
 
-    def __call__(self, action):
+    def __call__(self, action, gripper_pos):
         """Calls the move(action) method with given arguments to perform grasp."""
-        return self.move(action)
+        return self.move(action, gripper_pos)
 
     def init_robot(self):
         self.armState = unitree_arm_interface.ArmFSMState
@@ -84,8 +84,8 @@ class z1_arm(object):
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
 
-    def move(self, action):
-        self.arm.MoveJ(action, self.gripper_pos, self.jnt_speed)
+    def move(self, action, gripper_pos):
+        self.arm.MoveJ(action, gripper_pos, self.jnt_speed)
     
     def labelrun(self, label):
         self.arm.labelRun(label)
@@ -104,3 +104,18 @@ class z1_arm(object):
         return (float(position[0]), float(position[1]), float(position[2]),
                 float(roll), float(pitch), float(yaw))
 
+    def close_gripper(self):
+        self.arm.setFsmLowcmd()
+        lastPos = self.arm.lowstate.getQ()
+        self.arm.q = lastPos
+        self.arm.qd = 0
+        self.arm.tau = armModel.inverseDynamics(arm.q, arm.qd, np.zeros(6), np.zeros(6)) # set torque
+        
+    
+        duration = 1000
+        for i in range(0, duration):
+            self.arm.setArmCmd(arm.q, arm.qd, arm.tau)
+            self.arm.gripperQ = i/duration-1
+            self.arm.setGripperCmd(self.arm.gripperQ, self.arm.gripperQd, self.arm.gripperTau)
+            self.arm.sendRecv()# udp connection
+            time.sleep(self.arm._ctrlComp.dt)

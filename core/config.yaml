@@ -1,0 +1,22 @@
+configs:
+  yolo11n-object365-pen:
+    description: 使用yolo11n_object365模型检测钢笔
+    model_path: /home/unitree/lxy_arm/ultralytics/yolo11n_object365.pt
+    object_class_id: 54
+    object_name: 钢笔
+  yolo11n-object365-phone:
+    description: 使用yolo11n_object365模型检测手机
+    model_path: /home/unitree/lxy_arm/ultralytics/yolo11n_object365.pt
+    object_class_id: 67
+    object_name: 手机cd
+  yolo26n-objv1-150-pen:
+    description: 使用yolo26n-objv1-150模型检测钢笔
+    model_path: /home/unitree/lxy_arm/ultralytics/yolo26n-objv1-150.pt
+    object_class_id: 51
+    object_name: 钢笔
+  yolov8n:
+    description: 使用yolov8n通用模型
+    model_path: /home/unitree/lxy_arm/robot_grasp/ultralytics/yolov8n.pt
+    object_class_id: 0
+    object_name: person
+current_config: yolo11n-object365-pen
