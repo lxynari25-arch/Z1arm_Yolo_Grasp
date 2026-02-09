@@ -92,46 +92,71 @@ if __name__ == "__main__":
         robot.labelrun("upcamera")
     time.sleep(2)
 
-    for img in realcam:
-        rgb_img, depth_vis_img, depth_frame = img
-        if len(np.array(rgb_img).shape) == 3:
-            # 置信度阈值修改了！！！
-            results = model(rgb_img, conf = 0.01, verbose=False)[0]
-            img_xy, names, confidence = cal_center(rgb_img, results.names, results.boxes.data.tolist(), object_class_id)
-            if img_xy:
-                print("**************************识别到物体**************************")
-                print(f"img_xy: {img_xy}")
-                real_xyz = realcam.pixel2point(img_xy)
-                print(f"real_xyz: {real_xyz}")
-                print(f"识别的物体名称为：{names}，置信度为：{confidence}")
+    # 每次完整抓取流程都由用户按回车触发：先等待按回车，再进入相机识别循环；
+    # 识别到目标并完成一次抓取后返回等待下一次按回车。
+    while True:
+        input("按回车开始识别：")
+        for img in realcam:
+            rgb_img, depth_vis_img, depth_frame = img
+            if len(np.array(rgb_img).shape) == 3:
+                # 置信度阈值修改了！！！
+                results = model(rgb_img, conf = 0.08, verbose=False)[0]
+                img_xy, names, confidence = cal_center(rgb_img, results.names, results.boxes.data.tolist(), object_class_id)
+                if img_xy:
+                    print("**************************识别到可夹住的物体！！！**************************")
+                    print(f"img_xy: {img_xy}")
+                    real_xyz = realcam.pixel2point(img_xy)
+                    print(f"相机坐标系下坐标: {real_xyz}")
+                    print(f"识别的物体名称为：{names}，置信度为：{confidence}")
 
-                RT_obj2cam[:3, 3] = np.array(real_xyz)
-                RT_gri2base = Calibration.Cartesian2Homogeneous(robot.get_current_pose())
-                RT_obj2base = RT_gri2base.dot(RT_cam2gri.dot(RT_obj2cam))
-                print(f"RT_obj2base: {RT_obj2base}")
+                    RT_obj2cam[:3, 3] = np.array(real_xyz)
+                    RT_gri2base = Calibration.Cartesian2Homogeneous(robot.get_current_pose())
+                    RT_obj2base = RT_gri2base.dot(RT_cam2gri.dot(RT_obj2cam))
+                    print(f"RT_obj2base: {RT_obj2base}")
 
-                if args.debug:
-                    save_debug_images(rgb_img, depth_vis_img, depth_frame)
+                    if args.debug:
+                        save_debug_images(rgb_img, depth_vis_img, depth_frame)
 
-                # 根据运动模式设置 r, p, y
-                x, y, z = RT_obj2base[:3, 3]
-                if args.mode == 1:
-                    # 固定姿态模式
-                    r, p, yaw = 0.0, 0.0, 0.0
-                elif args.mode == 2:
-                    r, p, yaw = 0.0, 1.0, 0.0
+                    # 根据运动模式设置 r, p, y
+                    x, y, z = RT_obj2base[:3, 3]
 
-                move_command = np.array([r, p, yaw, x, y, z], dtype=float)
-                print(f"[运动执行] 执行movej运动指令：")
-                print(f"完整指令: {move_command}")
-                robot(move_command, -1)
-                time.sleep(1)
-                # robot.close_gripper()
-                # 爪子闭合！！！
-                robot(move_command, 1)
-                if args.mode == 1:
-                    robot.move_init_pose()
-                elif args.mode == 2:
-                    robot.labelrun("upcamera")
+                    # 除去异常x值
+                    if x >= 0.8 or x <= 0.3:
+                        print(f"------出现异常x值：{x}--------")
+                        input("请重新摆放物体！！！")
+                        continue
+                    
+                    print(f"目标物体在基座坐标系下位置: x={x}, y={y}, z={z}")
+                    if args.mode == 1:
+                        # 固定姿态模式
+                        r, p, yaw = 0.0, 0.0, 0.0
+                    elif args.mode == 2:
+                        r, p, yaw = 0.0, 1.0, 0.0
+
+                    input("按回车开始抓取：")
+                    move_command = np.array([r, p, yaw, x, y, z], dtype=float)
+                    print(f"[运动执行] 执行movej运动指令：")
+                    print(f"完整指令: {move_command}")
+
+                    # 中间
+                    move_command_middle = np.array([r, p, yaw, x-0.15, y, z-0.055], dtype=float)
+                    print(f"中间点坐标：{x-0.15, y, z-0.055}")
+                    robot(move_command_middle, -1)
+                    time.sleep(1)
+                    # 末端
+                    move_command_end = np.array([r, p, yaw, x-0.08, y, z-0.055], dtype=float)
+                    print(f"末端点坐标：{x-0.08, y, z-0.055}")
+                    robot(move_command_end, -1)
+                    time.sleep(1)
+                    # 爪子闭合！！！
+                    robot(move_command_end, 1)
+                    if args.mode == 1:
+                        robot.move_init_pose()
+                    elif args.mode == 2:
+                        robot.labelrun("upcamera")
+
+                    # 完成一次抓取后退出帧循环，回到等待按回车
+                    break
+        time.sleep(0.1)
 
     print("End.")

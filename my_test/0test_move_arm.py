@@ -22,9 +22,19 @@ p = 0.0
 yaw = 0.0
 
 # 末端位置（单位：m，基坐标系）
-x = 0.46
-y = 0.0
-z = 0.0
+x = 0.71897 
+y = 0.0039534
+z = 0.12016
+
+xj = 0.08
+yj = 0
+zj = 0
+
+
+# 执行减法操作
+x = x - xj
+y = y - yj
+z = z - zj
 
 TARGET_POSE = np.array([r, p, yaw, x, y, z], dtype=float)
 # ===========================================================================
@@ -40,7 +50,7 @@ if __name__ == "__main__":
 
     try:
         # 直接执行末端控制
-        robot(TARGET_POSE)
+        robot(TARGET_POSE, -1)
 
         # 如果 SDK 支持，读取并打印当前末端位姿
         current_pose = robot.get_current_pose()
