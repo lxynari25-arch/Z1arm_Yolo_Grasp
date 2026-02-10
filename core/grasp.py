@@ -11,6 +11,8 @@ from calibrate import Calibration
 from pathlib import Path
 from utils import *
 from config_manager import config_manager
+from move import *
+from b2_message import *
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]
@@ -96,6 +98,10 @@ if __name__ == "__main__":
     # 识别到目标并完成一次抓取后返回等待下一次按回车。
     while True:
         input("按回车开始识别：")
+        flush_camera_buffer(realcam, flush_count=30)
+        grasp_success = 0
+        move_command_middle = 0
+        move_command_end = 0
         for img in realcam:
             rgb_img, depth_vis_img, depth_frame = img
             if len(np.array(rgb_img).shape) == 3:
@@ -123,8 +129,7 @@ if __name__ == "__main__":
                     # 除去异常x值
                     if x >= 0.8 or x <= 0.3:
                         print(f"------出现异常x值：{x}--------")
-                        input("请重新摆放物体！！！")
-                        continue
+                        break
                     
                     print(f"目标物体在基座坐标系下位置: x={x}, y={y}, z={z}")
                     if args.mode == 1:
@@ -133,7 +138,6 @@ if __name__ == "__main__":
                     elif args.mode == 2:
                         r, p, yaw = 0.0, 1.0, 0.0
 
-                    input("按回车开始抓取：")
                     move_command = np.array([r, p, yaw, x, y, z], dtype=float)
                     print(f"[运动执行] 执行movej运动指令：")
                     print(f"完整指令: {move_command}")
@@ -156,7 +160,44 @@ if __name__ == "__main__":
                         robot.labelrun("upcamera")
 
                     # 完成一次抓取后退出帧循环，回到等待按回车
+                    grasp_success = 1
                     break
-        time.sleep(0.1)
+        
+        if grasp_success == 0:
+            continue
+
+        # 1. 创建一个队列
+        q = Queue()
+
+        # 2. 创建监听实例
+        listener = RobotDogListener()
+        # 3. 启动子进程，只传队列（超级干净）
+        p = multiprocessing.Process(target=listener.start, args=(q,), daemon=True)
+        p.start()
+        print("🚀 主进程运行中，等待机器狗到达...")
+
+        # 发送 POST 请求，让狗移动
+        print("正在向机器狗发送移动命令...")
+        response = requests.post(url, data=json.dumps(payload), headers=headers)
+
+        # 监听子进程的消息，判断机器狗是否到达！！！
+        while True:
+            if not q.empty():
+                msg = q.get()
+                if msg == "arrived":
+                    move_command_end[3] = move_command_end[3] + 0.05
+                    move_command_end[5] = move_command_end[5] + 0.08
+                    robot(move_command_end, 1)
+                    time.sleep(1)
+                    robot(move_command_end, -1)
+                    time.sleep(1)
+                    # robot(move_command_middle, -1)
+                    if args.mode == 1:
+                        robot.move_init_pose()
+                    elif args.mode == 2:
+                        robot.labelrun("upcamera")
+                    break
+                    
+            asyncio.run(asyncio.sleep(0.1))
 
     print("End.")

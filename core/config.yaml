@@ -39,4 +39,9 @@ configs:
     model_path: /home/unitree/lxy_arm/ultralytics/yolov8l.pt
     object_class_id: 73
     object_name: book
-current_config: yolov8m-book
+  yolov26m-book:
+    description: 使用yolov26m检测书
+    model_path: /home/unitree/lxy_arm/ultralytics/yolo26m.pt
+    object_class_id: 73
+    object_name: book
+current_config: yolov26m-book

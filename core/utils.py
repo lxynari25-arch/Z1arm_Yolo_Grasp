@@ -481,3 +481,19 @@ def save_debug_images(rgb_img, depth_vis_img, depth_frame):
     print(f"RGB图已保存到: {rgb_save_path}")
     print(f"深度可视化已保存到: {depth_save_path}")
     print(f"原始深度数据已保存到: {raw_depth_save_path}")
+
+def flush_camera_buffer(camera_instance, flush_count=30):
+    """
+    专门用于清空相机缓冲区，解决图像滞后和自动曝光未稳定问题
+    :param camera_instance: Realsense2 的实例
+    :param flush_count: 刷新帧数，30帧左右通常足以清空硬件缓存并完成自动曝光调整
+    """
+    print(f"正在刷新相机缓存 ({flush_count} 帧)...")
+    for _ in range(flush_count):
+        try:
+            # 使用 next(iter()) 触发 Realsense2 内部的 wait_for_frames()
+            # 仅仅拉取数据流，不进行任何 YOLO 推理或深度处理
+            _ = next(iter(camera_instance))
+        except StopIteration:
+            break
+    print("缓存清理完成，当前为实时画面。")
